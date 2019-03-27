@@ -1,0 +1,27 @@
+\documentclass[ngerman]{latex-classes/summary}
+
+\title{Funktionen Programmierparadigmen}
+\author{Jens Ochsenmeier}
+
+\usepackage{minted}
+
+\newenvironment{prolog}
+{\VerbatimEnvironment\begin{minted}[fontsize=\footnotesize]{prolog}}
+{\end{minted}}
+
+\newenvironment{haskell}
+{\VerbatimEnvironment\begin{minted}[fontsize=\footnotesize]{haskell}}
+{\end{minted}}
+
+\newenvironment{java}
+{\VerbatimEnvironment\begin{minted}[fontsize=\footnotesize]{java}}
+{\end{minted}}
+
+\begin{document}
+
+\input{chapters/01_Haskell.tex}
+\input{chapters/02_Prolog.tex}
+\input{chapters/03_MPI.tex}
+\input{chapters/04_Java.tex}
+
+\end{document}

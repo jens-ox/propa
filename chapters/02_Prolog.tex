@@ -1,0 +1,87 @@
+\section*{Prolog}
+
+\paragraph{Vordefinierte Atome und Prädikate}
+\begin{prolog}
+  halt % Prolog verlassen
+  listing % Inhalt Datenbank ausgeben
+  consult('datei') % Datenbank laden
+  write(wert) % Wert ausgeben
+  format('Hello ~s', [name]) % Ausgabe Hello Name
+  nl % Neue Zeile ausgeben
+  assert(fakt) % neuen Fakt hinzufügen 
+  retract(fakt) % alten Fakt entfernen
+\end{prolog}
+
+\paragraph{Arithmetikfunktionen}
+\begin{prolog}
+  % fibonacci
+  fib(0,0).
+  fib(1,1).
+  fib(X,Y) :- X>1,
+    X1 is X-1, X2 is X-2,
+    fib(X1,Y1), fib(X2,Y2),
+    Y is Y1+Y2.
+
+  % test if natural number.
+  nat(0).
+  nat(X) :- nat(Y), X is Y+1.
+
+  % compute approximate square root.
+  sqrt(X,Y) :- nat(Y),
+    Y2 is Y*Y, Y3 is (Y+1)*(Y+1),
+    Y2 =< X, X < Y3.
+
+  % test evenness.
+  even(0).
+  odd(1).
+  even(X) :- X > 0, X1 is X-1, odd (X1).
+  odd(X) :- X > 1, X1 is X-1, even(X1).
+\end{prolog}
+
+\paragraph{Listenfunktionen}
+\begin{prolog}
+  % tests if list includes element.
+  member(X,[X|R]).
+  member(X,[Y|R]) :- member(X,R).
+
+  % appends element to list.
+  append([],L,L).
+  append([X|R],L,[X|T]) :- append(R,L,T).
+
+  % reverses list.
+  rev([],[]).
+  rev([X|R],Y) :- rev(R,Y1),append(Y1,[X],Y).
+
+  % permutes list
+  permute([],[]).
+  permute([X|R],P) :-
+    permute(R,P1),
+    append(A,B,P1),
+    append(A,[X|B],P).
+
+  % quicksort
+  qsort([],[]).
+  qsort([X|R],Y) :- split(X,R,R1,R2),
+    qsort(R1,Y1),
+    qsort(R2,Y2),
+    append(Y1,[X|Y2],Y).
+
+  split(X,[],[],[]).
+  split(X,[H|T],[H|R],Y) :- X>H, split(X,T,R,Y).
+  split(X,[H|T],R,[H|Y]) :- X=<H, split(X,T,R,Y).
+\end{prolog}
+
+\paragraph{Cut-Funktionen}
+\begin{prolog}
+  % green-cut max
+  max(X,Y,X) :- X>Y, !.
+  max(X,Y,Y) :- X=<Y.
+
+  % red-cut max
+  max(X,Y,Z) :- X>Y, !, Z=X.
+  max(X,Y,Y).
+
+  % negation
+  not(X) :- call(X), !, fail.
+  not(X).
+\end{prolog}

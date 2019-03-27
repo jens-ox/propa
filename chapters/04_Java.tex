@@ -1,0 +1,444 @@
+\section{Java Parallel}
+
+\paragraph{Functional Interfaces}
+\begin{java}
+  @FunctionalInterface
+  interface Predicate {
+    boolean check(int value);
+  }
+
+  public int sum(List<Integer> values, Predicate predicate) {
+    int result = 0;
+    for (int value : values) {
+      if (predicate.check(value)) result += value;
+    }
+    return result;
+  }
+
+  // example use
+  sum(values, i -> i > 5);
+\end{java}
+
+\paragraph{Method References}
+\begin{java}
+  class SimpleCheckers {
+    public static boolean checkGreaterThanFive(Integer value) {
+      return value > 5;
+    }
+  }
+
+  // example use
+  sum(values; SimpleCheckers::checkGreaterThanFive);
+\end{java}
+
+\paragraph{Thread Class}
+\begin{java}
+  class SayHelloThread extends Thread {
+    public void run () {
+      System.out.println("Hello");
+    }
+
+    public static void main(String[] args) {
+      (new SayHelloThread()).start();
+    }
+  }
+\end{java}
+Methods:
+\begin{itemize}
+  \item \code{run()}: defined thread task
+  \item \code{start()}: starts thread
+  \item \code{isAlive()}: returns if thread is still running
+  \item \code{sleep(long milliseconds)}: sleeps thread for given time
+  \item \code{interrupt()}: sets interrupted flag for thread
+  \item \code{isInterrupted()}: return whether interrupted flag is set
+\end{itemize}
+
+\paragraph{Runnable Class}
+\begin{java}
+  class SayHelloRunnable implements Runnable {
+    public void run() {
+      System.out.println("Hello");
+    }
+
+    public static void main(String[] args) {
+      (new Thread(new SayHelloRunnable())).start();
+    }
+  }
+\end{java}
+
+\paragraph{Runnable using Lambda}
+\begin{java}
+    class SayHelloRunnable implements Runnable {
+      public static void main(String[] args) {
+        (new Thread(() -> System.out.println("Hello"))).start();
+      }
+    }
+\end{java}
+
+\paragraph{Thread Joining}
+
+Here: force output of ``Hello'' before ``Goodbye''
+\begin{java}
+  class SayHelloRunnable implements Runnable {
+    public void run() {
+      System.out.println("Hello");
+    }
+    public static void main(String[] args)
+      throws InterruptedException {
+      Thread thread = new Thread(new SayHelloRunnable());
+      thread.start();
+      thread.join();
+      System.out.println("Goodbye");
+    }
+  }
+\end{java}
+
+\paragraph{Thread Result Passing}
+
+Define \code{getResult}-Method returning result after joining thread
+\begin{java}
+  MyThread t = new MyThread();
+  t.start();
+  t.join();
+  String result = t.getResult();
+\end{java}
+
+\paragraph{Thread Priorities}
+\begin{itemize}
+  \item \code{void setPriority(int priority)}: set priority of a thread
+  \item by default, threads inherit priority of creating thread
+  \item predefined: \code{Thread.MIN_PRIORITY}/\code{NORM_PRIORITY}/\code{MAX_PRIORITY}
+\end{itemize}
+
+\paragraph{Synchronization --- Monitors}
+\begin{java}
+  public void doSomething() {
+    synchronized(someObject) {
+      // critical, lock held on someObject
+    }
+  }
+
+  // whole method critcal, monitor = this
+  public synchronized void doSomething2() {
+    // critical
+  }
+\end{java}
+
+\paragraph{volatile Keyword}
+\begin{itemize}
+  \item ensures that changes to variables are immediately visible to all threads
+  \item[\( \to \)] happens-before relationship: write to volatile happens-before every subsequent read of that volatile
+\end{itemize}
+
+\paragraph{Guarded Blocks}
+\begin{itemize}
+  \item poll condition that must be true before proceeding
+  \item Idea: \code{while (!condition) \{\}; doSomething();}
+  \item \textbf{Signals}: = operations that can be callled on monitors for coordination
+  \item only thread ``owning'' monitor can use signals on it \( \to \) only use inside synchronized block!
+  \item \code{wait()}: release monitor so another thread can enter
+  \begin{itemize}
+    \item thread waits for \code{notify()} or \code{notifyAll()}
+    \item can throw \code{InterruptedException}
+    \item overloaded method with timeout parameter available
+  \end{itemize}
+  \item \code{notify()}: wake up one thread that called \code{wait()} on monitor
+  \begin{itemize}
+    \item can wake ``wrong'' thread (e.g. in producer-consumer context)
+  \end{itemize}
+  \item \code{notifyAll()}: wake all threads waiting for monitor
+  \begin{itemize}
+    \item safer choice than \code{notify()}
+  \end{itemize}
+\end{itemize}
+\begin{java}
+  public class MyBlockingStack {
+    public synchronized void push (Object o) {
+      while (count == max) {
+        try {
+          this.wait();
+        } catch (InterruptedException e) {
+          // ...
+        }
+      }
+      stack.push(o);
+      this.notifyAll();
+    }
+
+    public synchronized Object pop () {
+      while (count == 0) {
+        try {
+          this.wait();
+        } catch (InterruptedException e) {
+          // ...
+        }
+      }
+      this.notifyAll();
+      return stack.pop();
+    }
+  }
+\end{java}
+
+\paragraph{Immutable Objects}
+\begin{itemize}
+  \item simple way to avoid concurrency problems
+  \item make class immutable:
+  \begin{enumerate}
+    \item declare all fields \code{private} and \code{final}
+    \item no setter methods
+    \item no overwriting \( \to \) declare class as \code{final}
+    \item references to mutable classes are not modifiable through methods
+    \item references to mutable classes are not shared
+  \end{enumerate}
+\end{itemize}
+
+\paragraph{Atomic Types}
+
+Types supporting atomic operations on single variables (e.g. AtomicInteger from java.util.concurrent.atomic)
+
+\paragraph{Locks}
+\begin{java}
+  public void doSomething () {
+    lock.lock();
+    try {
+      // critical
+    } finally {
+      lock.unlock();
+    }
+  }
+\end{java}
+\begin{itemize}
+  \item \code{tryLock()}: acquire lock if possible (can be used to acquire several locks without blocking)
+\end{itemize}
+
+\paragraph{Counting Semaphore}
+\begin{itemize}
+  \item \code{Semaphore(int capacity, boolean fair)}
+  \item critical section can be entered \( n \) times
+  \item \textbf{permit}: one access to critical section
+  \item \code{aquire()}: takes permit, reduces \# available permits, blocks if all permits aquired
+  \item \code{release()}: releases permit, increases \# available permits, potentially releases blocking aquirer
+  \item \code{tryAquire()}: non-blocking \code{aquire()}
+  \item all calls possible with arbitrary \# permits (\code{void aquire(int amount)})
+\end{itemize}
+
+\paragraph{Barriers}
+\begin{itemize}
+  \item \code{CyclicBarrier(int n)}
+  \begin{itemize}
+    \item \code{await()} blocks calling thread --- if called \( n \) times, all threads resume
+    \item can be reused afterwards
+  \end{itemize}
+  \item \code{CountDownLatch(int n)}
+  \begin{itemize}
+    \item \code{await()} blocks calling thread
+    \item if \code{countdown()} called \( n \) times, all threads resume
+    \item latch cannot be restarted afterwards
+    \item further calls to \code{await()} return immediately
+  \end{itemize}
+  \code{Exchanger<V>()}: synchronous exchange of two objects between two threads
+  \begin{itemize}
+    \item \code{V exchange(V objectToExchange)}: exchange method has to be called by both threads, blocks until both have called
+  \end{itemize}
+\end{itemize}
+
+\paragraph{Executor}
+\begin{itemize}
+  \item abstract from thread creation
+  \item simple implementation: only start thread
+  \item complex implementation: e.g. reuse already created threads
+  \item \code{Executor}: simple interface, supports task execution
+  \begin{itemize}
+    \item \code{void execute(Runnable runnable)}
+  \end{itemize}
+  \item \code{ExecutorService}: most important interface
+  \begin{itemize}
+    \item subinterface of \code{Executor}, provides further lifecycle management logic
+  \end{itemize}
+  \item \code{Executor}\textcolor{red}{\footnotesize\texttt{s}}: class providing convenient factory methods for creating \code{ExecutorService}
+  \begin{itemize}
+    \item \code{newSingleThreadExecutor()}: creates \code{Executor} using single thread
+    \item \code{newFixedThreadPool(int)}: creates thread pool with reused threads, fixed size
+    \item \code{newCachedThreadPool()}: creates thread pool with reused threads, dynamic size
+  \end{itemize}
+\end{itemize}
+\begin{java}
+  ExecutorService executor = Executors.newSingleThreadExecutor();
+  executor.execute(() -> {
+    String threadName = Thread.currentThread().getName();
+    System.out.println("Hello " + threadName);
+  })
+
+  try {
+    executor.shutdown();
+    executor.awaitTermination(5, TimeUnit.SECONDS);
+  } catch (InterruptedException ex) {
+    // handle
+  } finally {
+    if (!executor.isTerminated()) {
+      executor.shutdownNow();
+    }
+  }
+\end{java}
+
+\paragraph{Callable Interface}
+\begin{itemize}
+  \item allows threads to return results
+  \item similar to \code{Runnable}: \code{call()} instead of \code{run()}
+\end{itemize}
+\begin{java}
+  public class MyCallable implements Callable<String> {
+    int id;
+
+    public MyCallable (int id) {
+      this.id = id;
+    }
+
+    public String call () {
+      return "Run " + id;
+    }
+  }
+\end{java}
+
+\paragraph{Futures}
+\begin{java}
+  ExecutorService executorService = Executors.newCachedThreadPool();
+  List<Future<Integer>> futures = new ArrayList<Future<Integer>>();
+
+  for (int i = 0; i < 10; i++) {
+    final int currentValue = i;
+    futures.add(executorService.submit(() -> { return currentValue; }))
+  }
+  for (Future<Integer> future : futures) {
+    try {
+      Integer result = future.get(); // like JS await
+      System.out.println(result);
+    } catch (ExecutorException ex) {}
+  }
+  executorService.shutdown();
+\end{java}
+
+\paragraph{Scheduled Executor Service}
+\code{ScheduledExecutorService}: subinterface of \code{ExecutorService}, supports scheduled task execution
+\begin{itemize}
+  \item Future: \code{schedule(Runnable task, long delay, TimeUnit timeunit)}
+  \item Periodic: \code{scheduleAtFixedRate(Runnable task, long initialDelay, long period, TimeUnit timeunit)}
+\end{itemize}
+\begin{java}
+  ScheduledExecutorService executor = 
+    Executors.newScheduledThreadPool(1);
+  Runnable task = () -> System.out.println("Scheduling: "
+    + System.nanoTime());
+  ScheduledFuture<?> future = 
+    executor.schedule(task, 3, TimeUnit.SECONDS);
+  TimeUnit.MILLISECONDS.sleep(1337);
+  long remainingDelay = future.getDelay(TimeUnit.MILLISECONDS);
+  System.out.println("Remaining Delay: " + remainingDelay);
+\end{java}
+
+\paragraph{Completable Future}
+\begin{itemize}
+  \item \code{Future} drawback: caller can query result, but not register callback
+  \item \code{CompletableFuture}: provides \code{thenApply}, like \code{then} in ES6
+\end{itemize}
+\begin{java}
+  CompletableFuture<String> modified =
+    futureCount.thenApply((Integer count) -> {
+      int transformedValue = count * 10;
+      return transformedValue;
+    })
+    .thenApply(transformed -> "Finally create a string: "
+      + transformed);
+  System.out.println(modified.get());
+\end{java}
+
+\paragraph{Fork and Join}
+\begin{itemize}
+  \item Java provides abstract \code{ForkJoinPool} and \code{ForkJoinTasks}
+  \item Concretizations: \code{RecursiveAction} (no result), \code{RecursiveTask} (result)
+  \item can be executed by \code{ForkJoinPool} calling its \code{invoke()} method
+\end{itemize}
+Task implementation:
+\begin{java}
+  public class MyTask extends RecursiveTask<Integer> {
+    @Override
+    public static Integer compute () {
+      // calculate sth, return if problem small
+      
+      // divide task
+      MyTask leftTask = new MyTask(...);
+      MyTask rightTask = new MyTask(...);
+      leftTask.fork();
+      rightTask.compute(); // one subtask in-place
+      leftTask.join();
+  
+      // compute result
+    }
+  }
+\end{java}
+
+\paragraph{Thread-safe Classes}
+\begin{itemize}
+  \item can be used safely by multiple threads concurrently
+  \item \code{BlockingQueue} (interface):
+  \begin{itemize}
+    \item queue with ops that block if queue full/empty/putting/retrieving
+    \item \code{put(...)}, \code{take()}
+    \item Implementations:
+    \begin{itemize}
+      \item \code{ArrayBlockingQueue}: limited capacity
+      \item \code{LinkedBlockingQueue}: optionally limited capacity
+      \item \code{PriorityBlockingQueue}: sorted
+    \end{itemize}
+  \end{itemize}
+  \item \code{ConcurrentHashMap}
+\end{itemize}
+
+\paragraph{Streams}
+\begin{java}
+  public class Person {
+    private final boolean isStudent;
+    private final int age;
+    public boolean isStudent () { return isStudent; }
+    public int getAge () { return age; }
+
+    public Person (boolean isStudent, int age) {
+      this.isStudent = isStudent;
+      this.age = age;
+    }
+  }
+
+  double average = personsInAuditorium
+    .stream()
+    .filter(Person::isStudent)
+    .mapToInt(Person::getAge)
+    .average()
+    .getAsDouble();
+
+  // collect op example
+  // 1. supplier: supplies new result container
+  // 2. accumulator: incorporates new element into result
+  // 3. combiner: combines two values, must be
+  //    compatible with result
+  //    (note: not used here, only for parallel comp.)
+  personsInAuditorium.stream().collect(
+    () -> 0,
+    (currentSum, person) -> { currentSum += person.getAge(); },
+    (leftSum, rightSum) -> { leftSum += rightSum }
+  )
+\end{java}
+\begin{itemize}
+  \item predefined collectors exist
+  \item e.g. mapping, summing up, grouping,\dots
+\end{itemize}
+
+\paragraph{Parallel Stream}
+Stream executing certain operations automatically in parallel
+\begin{java}
+  double average = personsInAuditorium
+    .parallelStream()
+    .filter(Person::isStudent)
+    .mapToInt(Person::getAge)
+    .average()
+    .getAsDouble();
+\end{java}

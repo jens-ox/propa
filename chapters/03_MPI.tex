@@ -1,0 +1,101 @@
+\section{MPI}
+
+\paragraph{Base methods}
+\begin{itemize}
+  \item \code{MPI_INIT(&argc, &args)}: initialize MPI
+  \item \code{int MPI_Comm_rank(MPI_Comm comm, int* rank)}: retrieve number of processing node (rank) withing communicator
+  \item \code{int MPI_Comm_size(MPI_Comm comm, int* size)}: retrieve total number of processes in communicator
+  \item \code{int MPI_BARRIER(MPI_Comm comm)}: block until all processes have called it
+  \item \code{int MPI_Send(void* buffer, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)}: blocking, asynchronous. Blocks until message buffer can be reused
+  \begin{itemize}
+    \item \code{buffer}: pointer to sender's buffer (free choice type)
+    \item \code{count}/\code{datatype}: number/type of buffer's elements
+    \item \code{dest}: rank of the destination process
+    \item \code{tag}: message ``context'' (e.g. conversion ID)
+    \item \code{comm}: communicator of process group
+  \end{itemize}
+  \item \code{int MPI_Rect(void* buffer, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status* status)}
+  \begin{itemize}
+    \item \code{source}: wildcard possible (\code{MPI_ANY_SOURCE})
+    \item \code{tag}: wildcard possible (\code{MPI_ANY_TAG})
+    \item \code{MPI_PROBE}: can be used to retrieve messages of unknown length
+    \item \code{MPI_Status}: required, because tag + source can be unknown when using wildcards
+  \end{itemize}
+  \item \code{MPI_Finalize()}: clean up after using MPI
+\end{itemize}
+
+\paragraph{Operation Modes (blocking)}
+\begin{itemize}
+  \item \code{MPI_Send}: standard-mode blocking send
+  \item \code{MPI_Bsend}: buffered-mode blocking send
+  \item \code{MPI_Ssend}: synchronous-mode blocking send
+  \item \code{MPI_Rsend}: ready-mode blocking send
+\end{itemize}
+
+\paragraph{Operation Modes (non-blocking)}
+\begin{itemize}
+  \item \code{int MPI_Isend(void* buf, int count, MPI_Datatype type, int dest, int tag, MPI_Comm comm, MPI_Request* request)}
+  \item \code{int MPI_Irecv(void* buf, int count, MPI_Datatype type, int src, int tag, MPI_Comm comm, MPI_Request* request)}
+  \begin{itemize}
+    \item \code{request}: pointer to status information about operation
+  \end{itemize}
+  \item \code{int MPI_Test(MPI_Request* r, int* flag, MPI_Status* s)}: non-blocking check, flag \( \coloneqq \) 1 if operation completed (0 otherwise)
+  \item \code{int MPI_Wait(MPI_Request* r, MPI_Status* s)}: blocking check
+\end{itemize}
+
+\paragraph{Broadcasting}
+\begin{itemize}
+  \item \code{int MPI_Bcast(void* buffer, int count, MPI_Datatype t, int root, MPI_Comm comm)}
+  \begin{itemize}
+    \item \code{root}: rank of message sender, uses \code{buffer} to provide data
+    \item receivers use \code{buffer} to receive data (other parameters must be identical)
+  \end{itemize}
+  \item \code{int MPI_Scatter(void* sendbuf, int sendcount, MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm)}: all receivers get equal-sized, but \emph{content-different} data
+  \begin{itemize}
+    \item \code{sendcount}/\code{recvcount}: \# elements sent/received by one process, usually equal
+  \end{itemize}
+  \item \code{int MPI_Scatterv(void* sendbuf, int* sendcounts, int* displacements, MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm)}: vector variant of \code{MPI_Scatter}
+  \begin{itemize}
+    \item allows varying counts for data sent to each process
+    \item \code{sendcounts}: int array with number of elements to send to each process
+    \item \code{displacements}: int array, entry \code{i}: displacement relative to \code{sendbuf} from which to take outgoing data to process \code{i} (gaps allowed, no overlaps)
+    \item \code{sendtype}: data type of send buffer elements (handle)
+    \item \code{recvcount}: number of elements in receive buffer (int)
+    \item \code{recvtype}: data type of receive buffer elements (handle)
+  \end{itemize}
+  \item \code{int MPI_Gather(void* sendbuf, int sendcount, MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm)}:
+  \begin{itemize}
+    \item \code{root}'s buffer contains collected data \emph{sorted by rank}, including \code{root}'s own buffer contents
+    \item receive buffer ignored by all non-root processes
+    \item \code{recvcout}: \# items received from \emph{each process}
+    \item[=] inverse of \code{MPI_Gater}
+    \item vector variant: \code{MPI_Gaterv}
+  \end{itemize}
+  \item \code{int MPI_Allgather(void* sendbuf, int sendcount, MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm)}
+  \begin{itemize}
+    \item \( \cong \) gather + broadcast
+    \item for each process \( p_j \) in \code{comm}, \( p_j \) collects + sends same data to all other proceses in \code{comm}
+    \item[\( \leadsto \)] buffer of each process in \code{comm} has \emph{same} data (including own data) in \emph{same} order
+    \item vector variant: \code{MPI_Allgatherv}
+  \end{itemize}
+  \item \code{int MPI_Alltoall(void* sendbuf, int sendcount, MPI_Datatype sendtype, void* recvbuf, int recvcount, MPI_Datatype recvtype, MPI_Comm comm)}
+  \begin{itemize}
+    \item sender \( p_s \): sends to receiver \( p_r \) only its \( r \)-th element
+    \item receiver \( p_r \): stores information from sender \( p_s \) at position \( s \) in its buffer
+    \item \code{MPI_Alltoallw}: separate specification of count, displacement, datatype for each block
+    \item vector variant: \code{MPI_Alltoallv}
+  \end{itemize}
+\end{itemize}
+
+\paragraph{Reduce}
+\code{int MPI_Reduce(void* sendbuf, void* recvbuf, int count, MPI_Datatype type, MPI_Op op, int root, MPI_Comm comm)}
+\begin{itemize}
+  \item applies operation to data in \code{sendbuf}, stores result in \code{recvbuf} of root process
+  \item \code{count}: \# columns in output buffer
+  \item \code{op}: either custom defined or
+  \begin{itemize}
+    \item logical/bitwise and/or: \code{MPI_LAND}, \code{MPI_BAND}, \code{MPI_LOR}, \code{MPI_BOR}
+    \item \code{MPI_MAX}, \code{MPI_MIN}, \code{MPI_SUM}, \code{MPI_PROD},\dots
+    \item \code{MPI_MINLOC}, \code{MPI_MAXLOC}: return rank of minimum/maximum
+  \end{itemize}
+\end{itemize}
