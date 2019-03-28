@@ -1,0 +1,56 @@
+\section{Design By Contract}
+
+\paragraph{Java Modeling Language (JML)}
+\begin{itemize}
+  \item \code{@requires}: pre-condition
+  \item \code{@ensures}: post-condition
+  \item \code{a ==> b}: a implies b
+  \item \code{a <==> b}: a iff b
+  \item \code{a <=!=> b}: !(a iff b)
+  \item \code{\\result}: result of method call
+  \item \code{\\old(E)}: value of E in state before method execution
+  \item \code{\\forall [declaration, range, body]}
+  \item \code{\\exists [declaration, range, body]}
+  \item \code{\\max, \\min, ...}
+\end{itemize}
+\begin{java}
+  /*@ requires size > 0;
+    @ ensures size == \old(size) - 1
+    @ ensures \result == \old(top())
+    @ ensures (\forall int i; 0 <= i && i < size;
+                \old(elements[i]) == elements[i])
+  */
+  Object pop () { ... }
+\end{java}
+
+\paragraph{JML --- Class Invariants}
+\begin{itemize}
+  \item define conditions containing class must hold in all user visible states
+\end{itemize}
+\begin{java}
+  class Stack {
+    //@ invariant size >= 0 && size <= 10;
+    private Object[] elements = new Object[10];
+    private int size = 0;
+    ...
+  }
+\end{java}
+
+\paragraph{JML --- Liskov Substitution}
+\begin{itemize}
+  \item Applies to overwriting methods
+  \item \textbf{Preconditions}: must \emph{not} be more restrictive than those overwritten: \\* \( \text{Pre}_\text{Sup} \Rightarrow \text{Pre}_\text{Sub} \)
+  \item \textbf{Postconditions}: must be \emph{at least} as restrictive as those of overwritten method: \\* \( \text{Post}_\text{Sub} \Rightarrow \text{Post}_\text{Sup} \)
+  \item \textbf{Invariants}: must be \emph{as least} as restrictive as those of super-class: \\* \( \text{Inv}_\text{Sub} \Rightarrow \text{Inv}_\text{Sup} \)
+\end{itemize}
+
+\paragraph{JML -- Pure Methods}
+\begin{itemize}
+  \item \emph{not allowed} to reference methods causing side effects in contracts
+  \item mark methods as \textbf{pure}:
+\end{itemize}
+\begin{java}
+  public /*@ pure @*/ int getElementCount () {
+    return size;
+  }
+\end{java}

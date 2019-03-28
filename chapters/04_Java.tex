@@ -424,8 +424,7 @@ Task implementation:
   personsInAuditorium.stream().collect(
     () -> 0,
     (currentSum, person) -> { currentSum += person.getAge(); },
-    (leftSum, rightSum) -> { leftSum += rightSum }
-  )
+    (leftSum, rightSum) -> { leftSum += rightSum })
 \end{java}
 \begin{itemize}
   \item predefined collectors exist
