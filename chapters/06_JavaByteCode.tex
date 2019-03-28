@@ -1,0 +1,152 @@
+\section{Java Byte Code}
+
+\paragraph{Laufzeitsystem}
+\begin{itemize}
+  \item \textbf{Heap}: Speicher Objektinstanzen, gemeinsam für alle Threads
+  \item \textbf{Method Area}: Methodencode, nur lesbar
+  \item \textbf{Runtime Constant Pool}: Konstante Daten (z.B. Typinformationen)
+  \item \textbf{Threads}: je Thread
+  \begin{itemize}
+    \item Program Counter
+    \item JVM Stack: Activation Records (Stackframes)
+    \item Native Method Stack: für Laufzeitsystem (meist C/C++)
+  \end{itemize}
+\end{itemize}
+
+\paragraph{Instruktionen}
+\begin{itemize}
+  \item Typen wie in Java, Instruktionen typisiert (z.B. \code{iadd(int)})
+  \item lokale Variablen lesen/schreiben: \code{?load}, \code{?store <x>}
+  \item Felder lesen/schreiben: \code{getfield}, \code{putfield}
+  \item Springen: \code{ifeq}, \code{ifnull}, \code{tableswitch}
+  \item Methodenaufrufen: \code{invokevirtual}, \code{invokestatic}
+  \item Objekterzeugung: \code{new}, \code{newarray}
+  \item Arithmetische Berechnungen: \code{?mul}, \code{?add}
+\end{itemize}
+
+\paragraph{Simples JBC}
+\begin{java}
+  void calc (int x, int y) {
+    int z = 4;
+    x = y * z + x;
+  }
+\end{java}
+\begin{java}
+  iconst 4 // lade Konstante 4
+  istore 3 // schreibe in z
+  iload 2 // lade y
+  iload 3 // lade z
+  imul // y * z
+  iload 1 // lade x
+  iadd // (y * z) + x
+  istore 1 // speichere in x
+\end{java}
+
+\paragraph{JBC --- Fibonacci}
+\begin{java}
+  public int fib (int steps) {
+    int last0 = 1;
+    int last1 = 1;
+    while (--steps > 0) {
+      int t = last0 + last1;
+      last1 = last0;
+      last0 = t
+    }
+    return last0;
+  }
+\end{java}
+\begin{java}
+  iconst 1
+  istore 2
+  iconst 1
+  istore 3
+  loop_begin:
+  iinc 1 -1
+  iload 1
+  ifle after_loop
+  iload 2
+  iload 3
+  iadd
+  istore 4
+  iload 2
+  istore 3
+  iload 4
+  istore 2
+  goto loop_begin
+  after_loop
+  iload 2
+  ireturn
+\end{java}
+
+\paragraph{JBC --- Arrays}
+\begin{java}
+  public void arr () {
+    int[] array = new int[10];
+    array[7] = 42;
+  }
+\end{java}
+\begin{java}
+  bipush 10
+  newarray int
+  astore 1
+  aload 1
+  bipush 7
+  bipush 42
+  iastore
+  return
+\end{java}
+
+\paragraph{JBC --- Felder}
+\begin{java}
+  class Foo {
+    public Bar field;
+    public void setNull () {
+      field = null;
+    }
+  }
+\end{java}
+\begin{java}
+  aload 0 // Parameter 0 ist IMMER this!!!
+  aconst_null
+  putfield Foo.field:LBar;
+  return
+\end{java}
+
+\paragraph{JBC --- if}
+\begin{java}
+  if (x == 4) { A } else { B }
+\end{java}
+\begin{java}
+  iload 0
+  bipush 4
+  if_icmpeq label0
+  goto label1
+label0:
+  A // then-teil
+  goto label2
+label1:
+  B // else-teil
+  goto label2
+label2:
+  // rest
+\end{java}
+
+\paragraph{JBC --- while}
+\begin{java}
+  while (x < 10) { A }
+\end{java}
+\begin{java}
+loopheader:
+  iload 0
+  bipush 10
+  if_icmplt loopbody
+  goto afterloop
+loopbody:
+  A // body
+  goto lopheader
+afterloop:
+  // rest
+\end{java}
+
+\paragraph{JBC --- Negation}
+Kein Bytecode-Befehl \( \leadsto \) Sprungziele vertauschen
